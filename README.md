@@ -4,27 +4,27 @@ Scan image files and retrieve textual data embedded within.
 
 **Prerequisites**
 
-- Node.js and npm (or yarn) installed on your system. You can download them from the official Node.js website [https://nodejs.org]
+- Node.js and npm (or yarn) installed on your system. You can download them from the [official Node.js website](https://nodejs.org).
 
 **Installation**
 
 1. Clone this repository using git:
 
-```bash
-git clone https://github.com/mjavason/...
-```
+   ```bash
+   git clone https://github.com/mjavason/...
+   ```
 
 2. Navigate to the project directory:
 
-```bash
-cd project-name...
-```
+   ```bash
+   cd project-name...
+   ```
 
 3. Install the project's dependencies:
 
-```bash
-npm install
-```
+   ```bash
+   npm install
+   ```
 
 **Running the project**
 
@@ -36,7 +36,7 @@ There are four main scripts defined in this project's `package.json` file:
 
 - **npm run build**
 
-  - This script is used to build the project for production. It will bundle your code, minify files and store them in a 'build' folder.
+  - This script is used to build the project for production. It will bundle your code, minify files, and store them in a 'build' folder.
 
 - **npm run start**
 
@@ -44,6 +44,10 @@ There are four main scripts defined in this project's `package.json` file:
 
 - **npm run test**
   - This script runs the project's tests. Make sure you've installed the packages before running this script.
+
+**API Documentation**
+
+After starting the API, you can access the documentation at the `/docs` route. Open your browser and go to [http://localhost:5000/docs](http://localhost:5000/docs) to view the API documentation.
 
 **Additional Notes**
 
