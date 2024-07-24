@@ -103,7 +103,8 @@ async function extractTextFromImage(imagePath: string) {
     } = await Tesseract.recognize(imagePath, 'eng', {
       logger: (m) => console.log(m), // Log progress messages
     });
-    return text;
+
+    return text.split('\n');
   } catch (error: any) {
     console.error('Error during OCR processing:', error);
     // throw Error(error.message);
