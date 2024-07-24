@@ -6,6 +6,9 @@ import dotenv from 'dotenv';
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUi from 'swagger-ui-express';
 import morgan from 'morgan';
+import multer, { FileFilterCallback } from 'multer';
+import os from 'os';
+import Tesseract from 'tesseract.js';
 
 //#region App Setup
 const app = express();
@@ -15,10 +18,10 @@ const SWAGGER_OPTIONS = {
   swaggerDefinition: {
     openapi: '3.0.0',
     info: {
-      title: 'Typescript SFA',
+      title: 'Image-Optical-Character-Recognition',
       version: '1.0.0',
       description:
-        'This is a single file typescript template app for faster idea testing and prototyping. It contains tests, one demo root API call, basic async error handling, one demo axios call and .env support.',
+        'Scan image files and retrieve textual data embedded within.',
       contact: {
         name: 'Orji Michael',
         email: 'orjimichael4886@gmail.com',
@@ -30,7 +33,7 @@ const SWAGGER_OPTIONS = {
         description: 'Development Environment',
       },
       {
-        url: 'https://live.onrender.com/api/v1',
+        url: 'https://image-optical-character-recognition.onrender.com',
         description: 'Staging Environment',
       },
     ],
@@ -52,6 +55,38 @@ app.use(cors());
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use(morgan('dev'));
 
+const tempDir = os.tmpdir(); // Get the system temporary directory
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, tempDir); // Use the system temporary directory
+  },
+  filename: function (req, file, cb) {
+    cb(null, file.originalname); // Keep the original file name
+  },
+});
+// Define the file filter function with TypeScript types
+const fileFilter = (
+  req: Request,
+  file: Express.Multer.File,
+  cb: FileFilterCallback
+) => {
+  const allowedTypes = ['image/jpeg', 'image/png'];
+
+  if (allowedTypes.includes(file.mimetype)) {
+    cb(null, true); // Accept file
+  } else {
+    // cb(new Error('Only jpg and png files are allowed!')); // Reject file
+    cb(null, false);
+  }
+};
+const upload = multer({
+  storage,
+  limits: {
+    fileSize: 5 * 1024 * 1024, // Limit file size to 5 MB
+  },
+  fileFilter,
+});
+
 //#endregion
 
 //#region Keys and Configs
@@ -60,7 +95,92 @@ const baseURL = 'https://httpbin.org';
 //#endregion
 
 //#region Code here
-console.log('Hello world');
+
+async function extractTextFromImage(imagePath: string) {
+  try {
+    const {
+      data: { text },
+    } = await Tesseract.recognize(imagePath, 'eng', {
+      logger: (m) => console.log(m), // Log progress messages
+    });
+    return text;
+  } catch (error: any) {
+    console.error('Error during OCR processing:', error);
+    // throw Error(error.message);
+    return false;
+  }
+}
+
+/**
+ * @swagger
+ * /extract-text:
+ *   post:
+ *     summary: Upload an image file to extract text
+ *     description: Extracts text from an uploaded image and returns it as JSON
+ *     tags:
+ *       - Image OCR
+ *     requestBody:
+ *       description: Image file to be processed
+ *       required: true
+ *       content:
+ *         multipart/form-data:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               file:
+ *                 type: string
+ *                 format: binary
+ *     responses:
+ *       '200':
+ *         description: Successfully extracted text from the image
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: object
+ *               properties:
+ *                 success:
+ *                   type: boolean
+ *                 message:
+ *                   type: string
+ *                 data:
+ *                   type: string
+ *       '400':
+ *         description: Bad request, file not uploaded
+ */
+
+app.post(
+  '/extract-text',
+  upload.single('file'),
+  async (req: Request, res: Response) => {
+    if (!req.file) {
+      return res.status(400).send({
+        success: false,
+        message: 'No file uploaded. Only jpg and png types accepted',
+      });
+    }
+
+    const filePath = req.file.path;
+
+    try {
+      const extractedText = await extractTextFromImage(filePath);
+      if (!extractedText)
+        return res
+          .status(400)
+          .send({ success: false, message: 'Unknown error occured' });
+
+      res.send({
+        success: true,
+        message: 'Image text extracted successfully',
+        data: extractedText,
+      });
+    } catch (e: any) {
+      return res
+        .status(400)
+        .send({ success: false, message: 'Unknown error occured' });
+    }
+  }
+);
+
 //#endregion
 
 //#region Server Setup
@@ -143,7 +263,8 @@ app.use((req: Request, res: Response) => {
 app.use((err: any, req: Request, res: Response, next: NextFunction) => {
   // throw Error('This is a sample error');
 
-  console.log(`${'\x1b[31m'}${err.message}${'\x1b][0m]'}`);
+  console.log(`${'\x1b[31m'}${err.message}${'\x1b][0m]'} `);
+
   return res
     .status(500)
     .send({ success: false, status: 500, message: err.message });
